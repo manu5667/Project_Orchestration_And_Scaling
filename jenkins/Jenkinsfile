@@ -1,0 +1,37 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-west-2"
+        ECR_REPO = "<your-ecr-repo-uri>"
+        IMAGE_TAG = "latest"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git 'https://git-codecommit.us-west-2.amazonaws.com/v1/repos/YourCodeCommitRepo'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("mern-app:${IMAGE_TAG}")
+                }
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                script {
+                    sh """
+                    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
+                    docker tag mern-app:${IMAGE_TAG} $ECR_REPO:latest
+                    docker push $ECR_REPO:latest
+                    """
+                }
+            }
+        }
+    }
+}
